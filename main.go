@@ -10,7 +10,8 @@ import (
 func main() {
 	var err error
 
-	if len(os.Args) > 3 {
+	stat, _ := os.Stdin.Stat()
+	if len(os.Args) > 3 || len(os.Args) == 1 && (stat.Mode()&os.ModeCharDevice) != 0 {
 		fmt.Fprintf(os.Stderr, "Usage: gox [infile[outfile]]\n")
 		os.Exit(1)
 	}
