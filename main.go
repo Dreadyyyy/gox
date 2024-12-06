@@ -40,5 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Fprintf(out, dump(buf.Bytes()))
+	for d := range dumpSeq(buf.Bytes()) {
+		fmt.Fprintf(out, d)
+	}
 }
