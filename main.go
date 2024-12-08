@@ -60,6 +60,6 @@ func main() {
 	}
 
 	for d := range unixSeq(buf.Bytes(), *v, *c) {
-		fmt.Fprintf(out, d)
+		fmt.Fprint(out, d)
 	}
 }
