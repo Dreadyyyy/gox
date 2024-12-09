@@ -1,20 +1,21 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 )
 
-const USAGE = `Usage:
+const (
+	USAGE = `Usage:
     gox [options] [infile[outfile]]\n
 Options:
     -h | -help  Show help
     -v |        Verbose
     -c |        Foramt <cols> bytes per line
     `
+	COLS = "Invalid number of columns: max 256\n"
+)
 
 func main() {
 	var err error
@@ -27,11 +28,16 @@ func main() {
 
 	flag.Parse()
 
+	if *c > 256 {
+		fmt.Fprint(os.Stderr, COLS)
+		os.Exit(1)
+	}
+
 	args := flag.Args()
 
 	stat, _ := os.Stdin.Stat()
 	if len(args) > 2 || len(args) == 0 && (stat.Mode()&os.ModeCharDevice) != 0 || h {
-		fmt.Fprintf(os.Stderr, USAGE)
+		fmt.Fprint(os.Stderr, USAGE)
 		os.Exit(1)
 	}
 
@@ -53,13 +59,12 @@ func main() {
 		}
 	}
 
-	buf := bytes.NewBuffer(nil)
-	if _, err = io.Copy(buf, in); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		os.Exit(1)
-	}
+	for l, err := range unixSeq(in, *v, *c) {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			os.Exit(1)
+		}
 
-	for d := range unixSeq(buf.Bytes(), *v, *c) {
-		fmt.Fprint(out, d)
+		fmt.Fprint(out, l)
 	}
 }

@@ -2,37 +2,50 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"unicode"
 )
 
-func unixSeq(bytes []byte, verbose bool, line int) func(func(string) bool) {
-	return func(yield func(string) bool) {
-		for i := 0; i < len(bytes); i += line {
-			out := fmt.Sprintf("%016X:", i)
+func unixSeq(r io.Reader, verbose bool, cols int) func(func(string, error) bool) {
+	return func(yield func(string, error) bool) {
+		bytes := make([]byte, cols)
+		offs := 0
 
-			for _, b := range bytes[i:min(i+line, len(bytes))] {
-				out += fmt.Sprintf(" %02X", b)
+		for n, err := r.Read(bytes); n != 0; n, err = r.Read(bytes) {
+			if err != nil {
+				yield("", err)
+				return
 			}
 
-			out += fmt.Sprintf("%*s", 3*max(i+line-len(bytes), 0), "")
+			var out strings.Builder
+
+			out.WriteString(fmt.Sprintf("%016X:", offs))
+
+			for _, b := range bytes[:n] {
+				out.WriteString(fmt.Sprintf(" %02X", b))
+			}
+
+			out.WriteString(fmt.Sprintf("%*s", 3*(cols-n), ""))
 
 			s := strings.Map(func(r rune) rune {
 				if unicode.IsGraphic(r) {
 					return r
 				}
 				return '.'
-			}, string(bytes[i:min(i+line, len(bytes))]))
+			}, string(bytes[:n]))
 
 			if verbose {
-				out += fmt.Sprintf("\t|%s|", s)
+				out.WriteString(fmt.Sprintf("\t|%s|", s))
 			}
 
-			out += "\n"
+			out.WriteString("\n")
 
-			if !yield(out) {
+			if !yield(out.String(), err) {
 				break
 			}
+
+			offs += n
 		}
 	}
 }
