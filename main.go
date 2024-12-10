@@ -8,11 +8,11 @@ import (
 
 const (
 	USAGE = `Usage:
-    gox [options] [infile[outfile]]\n
+    gox [options] [infile[outfile]]
 Options:
     -h | -help  Show help
     -v |        Verbose
-    -c |        Foramt <cols> bytes per line
+    -c |        Format <cols> bytes per line
     `
 	COLS = "Invalid number of columns: max 256\n"
 )
@@ -25,6 +25,10 @@ func main() {
 	flag.BoolVar(&h, "help", false, "Show help")
 	v := flag.Bool("v", false, "Verbose")
 	c := flag.Int("c", 8, "Format <cols> bytes per line")
+
+	flag.Usage = func() {
+		fmt.Fprint(os.Stderr, USAGE)
+	}
 
 	flag.Parse()
 
