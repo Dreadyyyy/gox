@@ -39,8 +39,7 @@ func main() {
 
 	args := flag.Args()
 
-	stat, _ := os.Stdin.Stat()
-	if len(args) > 2 || len(args) == 0 && (stat.Mode()&os.ModeCharDevice) != 0 || h {
+	if len(args) > 2 || h {
 		fmt.Fprint(os.Stderr, USAGE)
 		os.Exit(1)
 	}
