@@ -3,14 +3,32 @@ package main
 import (
 	"fmt"
 	"io"
+	"iter"
 	"strings"
 	"unicode"
 )
 
-func unixSeq(r io.Reader, verbose bool, cols int) func(func(string, error) bool) {
+func verbose(w *strings.Builder, bytes []byte) {
+	s := strings.Map(func(r rune) rune {
+		if unicode.IsGraphic(r) {
+			return r
+		}
+		return '.'
+	}, string(bytes))
+
+	w.WriteString(fmt.Sprintf("|%s|", s))
+}
+
+func dumpSeq(r io.Reader, ps bool, v bool, cols int, offs int) iter.Seq2[string, error] {
+	format := " %02X"
+	padding := 3
+	if ps {
+		format = "%02X"
+		padding = 2
+	}
+
 	return func(yield func(string, error) bool) {
 		bytes := make([]byte, cols)
-		offs := 0
 
 		for n, err := r.Read(bytes); n != 0; n, err = r.Read(bytes) {
 			if err != nil {
@@ -20,23 +38,18 @@ func unixSeq(r io.Reader, verbose bool, cols int) func(func(string, error) bool)
 
 			var out strings.Builder
 
-			out.WriteString(fmt.Sprintf("%016X:", offs))
-
-			for _, b := range bytes[:n] {
-				out.WriteString(fmt.Sprintf(" %02X", b))
+			if !ps {
+				out.WriteString(fmt.Sprintf("%016X", offs))
 			}
 
-			out.WriteString(fmt.Sprintf("%*s", 3*(cols-n), ""))
+			for _, b := range bytes[:n] {
+				out.WriteString(fmt.Sprintf(format, b))
+			}
+			out.WriteString(fmt.Sprintf("%*s", padding*(cols-n), ""))
 
-			s := strings.Map(func(r rune) rune {
-				if unicode.IsGraphic(r) {
-					return r
-				}
-				return '.'
-			}, string(bytes[:n]))
-
-			if verbose {
-				out.WriteString(fmt.Sprintf("\t|%s|", s))
+			if v {
+				out.WriteString("\t")
+				verbose(&out, bytes[:n])
 			}
 
 			out.WriteString("\n")
