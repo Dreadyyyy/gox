@@ -51,7 +51,7 @@ func main() {
 	if len(args) > 0 {
 		in, err = os.Open(args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -59,14 +59,14 @@ func main() {
 	if len(args) == 2 {
 		out, err = os.Create(args[1])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 	}
 
 	for l, err := range dumpSeq(in, *ps, *v, *c, *o) {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
