@@ -19,36 +19,35 @@ func verbose(w *strings.Builder, bytes []byte) {
 	w.WriteString(fmt.Sprintf("|%s|", s))
 }
 
-func dump(in io.Reader, out *os.File, p bool, v bool, cols int, offs int) {
+func dump(in io.Reader, out *os.File, plain bool, verb bool, cols int, offs int) {
 	format := " %02X"
 	padding := 3
-	if p {
+	if plain {
 		format = "%02X"
 		padding = 2
 	}
 
-	bytes := make([]byte, cols)
+	buff := make([]byte, cols)
 
-	for n, err := in.Read(bytes); n != 0; n, err = in.Read(bytes) {
+	for n, err := in.Read(buff); n != 0; n, err = in.Read(buff) {
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
+			fatal(err.Error())
 		}
 
 		var sb strings.Builder
 
-		if !p {
+		if !plain {
 			sb.WriteString(fmt.Sprintf("%016X", offs))
 		}
 
-		for _, b := range bytes[:n] {
+		for _, b := range buff[:n] {
 			sb.WriteString(fmt.Sprintf(format, b))
 		}
 		sb.WriteString(fmt.Sprintf("%*s", padding*(cols-n), ""))
 
-		if v {
+		if verb {
 			sb.WriteString("\t")
-			verbose(&sb, bytes[:n])
+			verbose(&sb, buff[:n])
 		}
 
 		sb.WriteString("\n")
