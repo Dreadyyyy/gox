@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"iter"
+	"os"
 	"strings"
 	"unicode"
 )
@@ -19,46 +19,42 @@ func verbose(w *strings.Builder, bytes []byte) {
 	w.WriteString(fmt.Sprintf("|%s|", s))
 }
 
-func dumpSeq(r io.Reader, ps bool, v bool, cols int, offs int) iter.Seq2[string, error] {
+func dump(in io.Reader, out *os.File, p bool, v bool, cols int, offs int) {
 	format := " %02X"
 	padding := 3
-	if ps {
+	if p {
 		format = "%02X"
 		padding = 2
 	}
 
-	return func(yield func(string, error) bool) {
-		bytes := make([]byte, cols)
+	bytes := make([]byte, cols)
 
-		for n, err := r.Read(bytes); n != 0; n, err = r.Read(bytes) {
-			if err != nil {
-				yield("", err)
-				return
-			}
-
-			var out strings.Builder
-
-			if !ps {
-				out.WriteString(fmt.Sprintf("%016X", offs))
-			}
-
-			for _, b := range bytes[:n] {
-				out.WriteString(fmt.Sprintf(format, b))
-			}
-			out.WriteString(fmt.Sprintf("%*s", padding*(cols-n), ""))
-
-			if v {
-				out.WriteString("\t")
-				verbose(&out, bytes[:n])
-			}
-
-			out.WriteString("\n")
-
-			if !yield(out.String(), err) {
-				break
-			}
-
-			offs += n
+	for n, err := in.Read(bytes); n != 0; n, err = in.Read(bytes) {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
 		}
+
+		var sb strings.Builder
+
+		if !p {
+			sb.WriteString(fmt.Sprintf("%016X", offs))
+		}
+
+		for _, b := range bytes[:n] {
+			sb.WriteString(fmt.Sprintf(format, b))
+		}
+		sb.WriteString(fmt.Sprintf("%*s", padding*(cols-n), ""))
+
+		if v {
+			sb.WriteString("\t")
+			verbose(&sb, bytes[:n])
+		}
+
+		sb.WriteString("\n")
+
+		fmt.Fprint(out, sb.String())
+
+		offs += n
 	}
 }
