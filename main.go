@@ -11,22 +11,29 @@ const (
     gox [options] [infile[outfile]]
 Options:
     -h | -help  Show help
-    -ps|        Plain hex dump output style
+    -p |        Plain hex dump output style
     -v |        Verbose
     -c |        Format <cols> bytes per line
     -o |        Add <offset> to the displayed file position
+    -r |        Reverse
     `
 	COLS = "Invalid number of columns: max 256"
 )
+
+func fatal(msg string) {
+	fmt.Fprintln(os.Stderr, msg)
+	os.Exit(1)
+}
 
 func main() {
 	var err error
 
 	h := flag.Bool("help", false, "Show help")
-	ps := flag.Bool("ps", false, "Plain hex dump output style")
+	p := flag.Bool("p", false, "Plain hex dump output style")
 	v := flag.Bool("v", false, "Verbose")
 	c := flag.Int("c", 8, "Format <cols> bytes per line")
 	o := flag.Int("o", 0, "Add offset")
+	r := flag.Bool("r", false, "Reverse")
 
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, USAGE)
@@ -35,15 +42,13 @@ func main() {
 	flag.Parse()
 
 	if *c > 256 {
-		fmt.Fprintln(os.Stderr, COLS)
-		os.Exit(1)
+		fatal(COLS)
 	}
 
 	args := flag.Args()
 
 	if len(args) > 2 || *h {
-		fmt.Fprintln(os.Stderr, USAGE)
-		os.Exit(1)
+		fatal(USAGE)
 	}
 
 	in, out := os.Stdin, os.Stdout
@@ -51,25 +56,22 @@ func main() {
 	if len(args) > 0 {
 		in, err = os.Open(args[0])
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
+			fatal(err.Error())
 		}
+		defer in.Close()
 	}
 
 	if len(args) == 2 {
-		out, err = os.Create(args[1])
+		out, err = os.OpenFile(args[1], os.O_WRONLY, 0644)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
+			fatal(err.Error())
 		}
+		defer out.Close()
 	}
 
-	for l, err := range dumpSeq(in, *ps, *v, *c, *o) {
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
-		}
-
-		fmt.Fprint(out, l)
+	if *r {
+		reverse(in, out, *p)
+	} else {
+		dump(in, out, *p, *v, *c, *o)
 	}
 }
